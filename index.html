@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-   <title>أكولوثيا – نظام المتابعه</title>
+<title>أكولوثيا – نظام المتابعه</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
         <!-- شاشة الدخول -->
         <div id="loginScreen" class="screen">
-         <h1>أكولوثيا – نظام المتابعه</h1>
+             <h1>أكولوثيا – نظام المتابعه</h1>
             <div class="card">
                 <h2>اختر هويتك</h2>
                 <button onclick="showMemberList()" class="btn-primary">عضو</button>
@@ -67,22 +67,29 @@
                 <h2>لوحة تحكم الأدمن</h2>
             </div>
             <div class="months-tabs" id="adminMonthsTabs"></div>
-			
-			<div class="settings-card" style="background:#f7fafc; padding:15px; border-radius:10px; margin:15px 0;">
-    <h3>⚙️ إعدادات الموعد الرسمي</h3>
-    <p>الموعد الحالي: <strong id="currentOfficialTime">09:00</strong></p>
-    <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-        <input type="time" id="newOfficialTime" style="width:auto;">
-        <button onclick="updateOfficialTime()" class="btn-primary" style="background:#4299e1;">تحديث الموعد</button>
-    </div>
-</div>
-			
-			
-            <div style="margin: 10px 0;">
-                <button onclick="resetCurrentMonth()" class="btn-warning" style="background:#ed8936;color:white;padding:10px 20px;">🗑️ حذف وإعادة تعيين الشهر الحالي</button>
+            
+            <!-- إعدادات الموعد الرسمي -->
+            <div class="settings-card" style="background:#f7fafc; padding:15px; border-radius:10px; margin:15px 0;">
+                <h3>⚙️ إعدادات الموعد الرسمي</h3>
+                <p>الموعد الحالي: <strong id="currentOfficialTime">09:00</strong></p>
+                <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                    <input type="time" id="newOfficialTime" style="width:auto;">
+                    <button onclick="updateOfficialTime()" class="btn-primary" style="background:#4299e1;">تحديث الموعد</button>
+                </div>
             </div>
-            <div id="adminStats" class="admin-stats"></div>
-            <div id="allMembersTable" class="members-table"></div>
+
+            <!-- أزرار التقارير -->
+            <div style="display:flex; gap:10px; margin:15px 0; flex-wrap:wrap;">
+                <button onclick="resetCurrentMonth()" style="background:#ed8936;color:white;padding:10px 20px;border:none;border-radius:10px;cursor:pointer;">🗑️ حذف وإعادة تعيين الشهر الحالي</button>
+                <button onclick="downloadPDF()" style="background:#e53e3e;color:white;padding:10px 20px;border:none;border-radius:10px;cursor:pointer;">📄 تحميل تقرير الشهر PDF</button>
+                <button onclick="window.print()" style="background:#48bb78;color:white;padding:10px 20px;border:none;border-radius:10px;cursor:pointer;">🖨️ طباعة التقرير</button>
+            </div>
+
+            <!-- محتوى التقرير (للPDF والطباعة) -->
+            <div id="pdf-content">
+                <div id="adminStats" class="admin-stats"></div>
+                <div id="allMembersTable" class="members-table"></div>
+            </div>
         </div>
     </div>
 
@@ -98,6 +105,8 @@
         </div>
     </div>
 
+    <!-- مكتبة PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
