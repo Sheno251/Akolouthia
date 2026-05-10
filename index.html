@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+   <title>أكولوثيا – نظام المتابعه</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- شاشة الدخول -->
+        <div id="loginScreen" class="screen">
+         <h1>أكولوثيا – نظام المتابعه</h1>
+            <div class="card">
+                <h2>اختر هويتك</h2>
+                <button onclick="showMemberList()" class="btn-primary">عضو</button>
+                <button onclick="showAdminLogin()" class="btn-secondary">أدمن</button>
+            </div>
+        </div>
+
+        <!-- شاشة الأعضاء -->
+        <div id="memberScreen" class="screen hidden">
+            <div class="header">
+                <button onclick="backToLogin()" class="btn-back">↩ رجوع</button>
+                <h2>اختر اسمك</h2>
+            </div>
+            <div id="memberList" class="member-grid"></div>
+        </div>
+
+        <!-- شاشة العضو الشخصية -->
+        <div id="memberDashboard" class="screen hidden">
+            <div class="header">
+                <button onclick="backToMemberList()" class="btn-back">↩ رجوع</button>
+                <h2 id="memberName"></h2>
+            </div>
+            <div class="months-tabs" id="memberMonthsTabs"></div>
+            <div class="attendance-buttons">
+                <button onclick="recordStatus('present')" class="status-btn present">✅ حاضر</button>
+                <button onclick="showLateDialog()" class="status-btn late">⏰ متأخر</button>
+                <button onclick="recordStatus('absent')" class="status-btn absent">❌ غائب بدون عذر</button>
+                <button onclick="recordStatus('excused')" class="status-btn excused">📝 غائب بعذر</button>
+            </div>
+            <div id="currentStatus" class="current-status"></div>
+            <div class="stats">
+                <h3>📊 نسبتك الشخصية</h3>
+                <div id="personalStats"></div>
+            </div>
+        </div>
+
+        <!-- شاشة دخول الأدمن -->
+        <div id="adminLoginScreen" class="screen hidden">
+            <div class="header">
+                <button onclick="backToLogin()" class="btn-back">↩ رجوع</button>
+                <h2>دخول الأدمن</h2>
+            </div>
+            <div class="card">
+                <input type="text" id="adminUsername" placeholder="اسم المستخدم">
+                <input type="password" id="adminPassword" placeholder="كلمة السر">
+                <button onclick="verifyAdmin()" class="btn-primary">دخول</button>
+            </div>
+        </div>
+
+        <!-- لوحة تحكم الأدمن -->
+        <div id="adminDashboard" class="screen hidden">
+            <div class="header">
+                <button onclick="backToLogin()" class="btn-back">↩ خروج</button>
+                <h2>لوحة تحكم الأدمن</h2>
+            </div>
+            <div class="months-tabs" id="adminMonthsTabs"></div>
+			
+			<div class="settings-card" style="background:#f7fafc; padding:15px; border-radius:10px; margin:15px 0;">
+    <h3>⚙️ إعدادات الموعد الرسمي</h3>
+    <p>الموعد الحالي: <strong id="currentOfficialTime">09:00</strong></p>
+    <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+        <input type="time" id="newOfficialTime" style="width:auto;">
+        <button onclick="updateOfficialTime()" class="btn-primary" style="background:#4299e1;">تحديث الموعد</button>
+    </div>
+</div>
+			
+			
+            <div style="margin: 10px 0;">
+                <button onclick="resetCurrentMonth()" class="btn-warning" style="background:#ed8936;color:white;padding:10px 20px;">🗑️ حذف وإعادة تعيين الشهر الحالي</button>
+            </div>
+            <div id="adminStats" class="admin-stats"></div>
+            <div id="allMembersTable" class="members-table"></div>
+        </div>
+    </div>
+
+    <!-- نافذة إدخال وقت التأخير -->
+    <div id="lateDialog" class="dialog hidden">
+        <div class="dialog-content">
+            <h3>تسجيل تأخير</h3>
+            <p>الموعد الرسمي: 9:00 صباحاً</p>
+            <label>وقت الحضور الفعلي:</label>
+            <input type="time" id="actualTime" value="09:30">
+            <button onclick="recordLate()" class="btn-primary">تسجيل</button>
+            <button onclick="closeLateDialog()" class="btn-secondary">إلغاء</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
