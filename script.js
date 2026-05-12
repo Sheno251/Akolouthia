@@ -84,7 +84,6 @@ async function recordStatus(status, lateMins=0, actualTime='') {
     ];
     await saveAttendance(record);
     updateMemberView();
-    // لو كان واقف على لوحة الأدمن، نحدثها برضه عشان تظهر البيانات الجديدة
     if(!document.getElementById('adminDashboard').classList.contains('hidden')) updateAdminView();
 }
 
@@ -122,7 +121,6 @@ function openMemberDashboard(name) {
     document.getElementById('memberDashboard').classList.remove('hidden');
     document.getElementById('memberName').innerText = name;
     renderTabs('memberMonthsTabs', true);
-    // إظهار أو إخفاء أزرار التسجيل
     const btnsDiv = document.getElementById('attendanceButtons');
     if(btnsDiv) btnsDiv.style.display = isAdmin ? 'grid' : 'none';
     updateMemberView();
@@ -182,7 +180,7 @@ function verifyAdmin() {
 }
 
 function showAdminDashboard(){
-    currentMember = null; // لا يوجد عضو محدد في لوحة الأدمن
+    currentMember = null;
     currentMonth=0; currentFilter='monthly';
     document.querySelectorAll('.screen').forEach(s=>s.classList.add('hidden'));
     document.getElementById('adminDashboard').classList.remove('hidden');
@@ -192,7 +190,6 @@ function showAdminDashboard(){
     updateAdminView();
 }
 
-// دالة تعديل العضو من لوحة الأدمن
 function editMemberFromAdmin(memberName) {
     openMemberDashboard(memberName);
 }
