@@ -9,7 +9,6 @@ let admins = [
     { username: "admin3", password: "admin123" }
 ];
 
-// تحميل كلمات المرور المحفوظة (لـ admin1 فقط)
 const savedAdmins = localStorage.getItem('customAdmins');
 if(savedAdmins) {
     const parsed = JSON.parse(savedAdmins);
@@ -36,7 +35,6 @@ async function saveAttendance(record) {
     } catch(e) { console.error(e); }
 }
 
-// ---------- دوال مساعدة ----------
 function getMemberRecords(name, month, filter='monthly') {
     let records = attendanceCache.filter(r => r[0]===name && r[1]==month+1);
     if(filter==='weekly'){
@@ -70,7 +68,6 @@ async function calcStats(name, month, filter='monthly') {
     };
 }
 
-// ---------- تسجيل الحضور والغياب ----------
 async function recordStatus(status, lateMins=0, actualTime='') {
     if(!currentMember) return;
     const now = new Date();
@@ -80,7 +77,7 @@ async function recordStatus(status, lateMins=0, actualTime='') {
         status,
         actualTime || now.toLocaleTimeString('ar-EG'),
         lateMins,
-        ''   // ملاحظة
+        ''
     ];
     await saveAttendance(record);
     updateMemberView();
@@ -99,7 +96,6 @@ async function recordLate() {
 function showLateDialog() { document.getElementById('lateDialog').classList.remove('hidden'); }
 function closeLateDialog() { document.getElementById('lateDialog').classList.add('hidden'); }
 
-// ---------- واجهة العضو (إخفاء الأزرار للأعضاء العاديين) ----------
 function showMemberList() {
     document.querySelectorAll('.screen').forEach(s=>s.classList.add('hidden'));
     document.getElementById('memberScreen').classList.remove('hidden');
@@ -164,7 +160,6 @@ function renderTabs(containerId, isMember=true){
     }
 }
 
-// ---------- الأدمن --------------------
 function showAdminLogin() {
     document.querySelectorAll('.screen').forEach(s=>s.classList.add('hidden'));
     document.getElementById('adminLoginScreen').classList.remove('hidden');
@@ -227,11 +222,11 @@ async function updateAdminView(){
             <td><button class="btn-edit" onclick="editMemberFromAdmin('${name.replace(/'/g, "\\'")}')">✏️ تعديل</button></td>
         </tr>`;
     });
-    html += `</tbody></table></div>`;
+    html += `</tbody><table></div>`;
     document.getElementById('allMembersTable').innerHTML = html;
 }
 
-// ---------- فلتر شهري/أسبوعي ----------
+// فلتر شهري/أسبوعي
 document.addEventListener('click', (e)=>{
     if(e.target.id === 'filterMonthly'){
         currentFilter = 'monthly';
@@ -246,9 +241,9 @@ document.addEventListener('click', (e)=>{
         updateAdminView();
     }
     if(e.target.id === 'changePasswordBtn') showChangePasswordDialog();
+    if(e.target.id === 'downloadPDFBtn') downloadPDF();
 });
 
-// ---------- تغيير كلمة المرور (لأدمن1 فقط) ----------
 function showChangePasswordDialog() {
     document.getElementById('changePasswordDialog').classList.remove('hidden');
 }
@@ -268,7 +263,6 @@ function changeAdminPassword() {
     closeChangePasswordDialog();
 }
 
-// ---------- PDF وطباعة ----------
 function downloadPDF() {
     const element = document.getElementById('pdf-content');
     if(element) {
@@ -282,7 +276,6 @@ function downloadPDF() {
     }
 }
 
-// ---------- الرجوع للصفحة الرئيسية ----------
 function backToLogin() {
     document.querySelectorAll('.screen').forEach(s=>s.classList.add('hidden'));
     document.getElementById('loginScreen').classList.remove('hidden');
