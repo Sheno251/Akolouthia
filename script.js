@@ -1,9 +1,9 @@
-
 // الأسماء الكاملة (12 عضو + 3 أدمن)
 const allNames = [
     "مارتيورس جمال", "نرمين فرج الله", "ميرنا فام", "بيشوي صفوت", "شنوده نصحي", "سيلفيا طلعت", "سيمون سمعان", "كرستينا ميلاد", "ماري بشاي", "ابانوب فرج الله", "امال عادل", "باسم جابر",  // 12 عضو
     "هاله عادل", "دميانه سمعان", "فام روماني",",ويصا مرزق","ماري هاني ","مينا فام","فيولا طلعت"  // 3 أدمن
 ];
+
 
 const admins = [
     { username: "admin1", password: "admin123" },
@@ -14,7 +14,7 @@ const admins = [
 const MONTHS_COUNT = 12;
 let currentMember = null;
 let currentMonth = 0;
-let attendanceData = [];
+let cachedData = { members: [], attendance: [] };
 
 const statusText = {
     'present': 'حاضر ✅',
@@ -23,23 +23,22 @@ const statusText = {
     'excused': 'غائب بعذر 📝'
 };
 
-// -------------------- تحميل البيانات من جوجل شيت --------------------
+// -------------------- دوال جوجل شيت --------------------
 async function loadData() {
     try {
         const response = await fetch(SCRIPT_URL);
         const data = await response.json();
-        attendanceData = data.attendance || [];
+        cachedData = data;
         return data;
     } catch (error) {
         console.error("خطأ في تحميل البيانات:", error);
-        return { members: [], attendance: [] };
+        return cachedData;
     }
 }
 
-// -------------------- حفظ البيانات في جوجل شيت --------------------
 async function saveToSheet(record) {
     try {
-        const response = await fetch(SCRIPT_URL, {
+        await fetch(SCRIPT_URL, {
             method: "POST",
             mode: "no-cors",
             headers: { "Content-Type": "application/json" },
@@ -51,10 +50,14 @@ async function saveToSheet(record) {
     }
 }
 
-// -------------------- حساب النسب --------------------
+// -------------------- دوال مساعدة --------------------
+function getMemberRecords(name, month) {
+    return cachedData.attendance.filter(r => r[0] === name && r[1] == month + 1);
+}
+
 async function calculatePersonalStats(name, month) {
     await loadData();
-    const records = attendanceData.filter(r => r[0] === name && r[1] == month + 1);
+    const records = getMemberRecords(name, month);
     const total = records.length;
     
     let present = 0, excused = 0, absent = 0;
@@ -69,8 +72,7 @@ async function calculatePersonalStats(name, month) {
                 lateCount++;
                 totalLateMinutes += parseInt(r[5]) || 0;
             }
-        }
-        else if (status === 'excused') excused++;
+        } else if (status === 'excused') excused++;
         else if (status === 'absent') absent++;
     });
     
@@ -84,7 +86,7 @@ async function calculatePersonalStats(name, month) {
     };
 }
 
-// -------------------- تسجيل الحالة --------------------
+// -------------------- تسجيل الحالات --------------------
 async function recordStatus(status, lateMinutes = 0, actualTime = "") {
     if (!currentMember) return;
     
@@ -102,7 +104,7 @@ async function recordStatus(status, lateMinutes = 0, actualTime = "") {
     await updateMemberView();
 }
 
-// -------------------- نافذة التأخير --------------------
+// -------------------- التأخير --------------------
 function showLateDialog() {
     document.getElementById('lateDialog').classList.remove('hidden');
 }
@@ -122,6 +124,12 @@ async function recordLate() {
     
     await recordStatus('late', lateMinutes, actualTime);
     closeLateDialog();
+}
+
+// -------------------- حذف شهر --------------------
+async function resetCurrentMonth() {
+    if (!confirm(`هل أنت متأكد من حذف جميع بيانات شهر ${currentMonth + 1}؟`)) return;
+    alert("هذه الميزة ستضاف قريباً - حالياً احذف الصفوف يدوياً من جوجل شيت");
 }
 
 // -------------------- عرض الأعضاء --------------------
@@ -152,24 +160,30 @@ function openMemberDashboard(name) {
     renderMonthsTabs('memberMonthsTabs', true);
     
     const btns = document.querySelectorAll('.status-btn');
-    if (isAdminPerson) {
-        btns.forEach(btn => btn.style.display = 'flex');
-    } else {
-        btns.forEach(btn => btn.style.display = 'none');
-    }
+    btns.forEach(btn => btn.style.display = isAdminPerson ? 'flex' : 'none');
     
     updateMemberView();
 }
 
 async function updateMemberView() {
     const stats = await calculatePersonalStats(currentMember, currentMonth);
+    const records = getMemberRecords(currentMember, currentMonth);
+    const lastRecord = records[records.length - 1];
+    
+    const statusDiv = document.getElementById('currentStatus');
+    if (lastRecord) {
+        let lateInfo = lastRecord[3] === 'late' ? `<br><small>⏱️ تأخر ${lastRecord[5]} دقيقة</small>` : '';
+        statusDiv.innerHTML = `<strong>آخر تسجيل:</strong><br>${statusText[lastRecord[3]]}${lateInfo}<br><small>${lastRecord[2]} - ${lastRecord[4]}</small>`;
+    } else {
+        statusDiv.innerHTML = 'لا توجد تسجيلات لهذا الشهر';
+    }
+    
     document.getElementById('personalStats').innerHTML = `
-        <p>✅ الحضور (حاضر + متأخر): ${stats.presentRate}%</p>
-        <p>📝 الغياب بعذر: ${stats.excusedRate}%</p>
-        <p>❌ الغياب بدون عذر: ${stats.absentRate}%</p>
+        <p>✅ الحضور: ${stats.presentRate}%</p>
+        <p>📝 غياب بعذر: ${stats.excusedRate}%</p>
+        <p>❌ غياب بدون عذر: ${stats.absentRate}%</p>
         <p>📊 إجمالي التسجيلات: ${stats.total}</p>
-        ${stats.lateCount > 0 ? `<p>⏰ عدد مرات التأخير: ${stats.lateCount}</p>
-        <p>⏱️ متوسط التأخير: ${stats.avgLate} دقيقة</p>` : ''}
+        ${stats.lateCount > 0 ? `<p>⏰ عدد مرات التأخير: ${stats.lateCount}</p><p>⏱️ متوسط التأخير: ${stats.avgLate} دقيقة</p>` : ''}
     `;
 }
 
@@ -181,7 +195,6 @@ function renderMonthsTabs(containerId, isMember = true) {
         const btn = document.createElement('button');
         btn.className = `month-tab ${i === currentMonth ? 'active' : ''}`;
         btn.textContent = `شهر ${i + 1}`;
-        btn.dataset.month = i;
         btn.onclick = () => {
             document.querySelectorAll(`#${containerId} .month-tab`).forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
@@ -206,7 +219,7 @@ function verifyAdmin() {
     if (admin) {
         showAdminDashboard();
     } else {
-        alert('اسم المستخدم أو كلمة السر خطأ');
+        alert('خطأ في اسم المستخدم أو كلمة السر');
     }
 }
 
@@ -223,68 +236,44 @@ async function updateAdminView() {
     const stats = [];
     
     for (const name of allNames) {
-        const personalStats = await calculatePersonalStats(name, currentMonth);
-        stats.push({ name, ...personalStats });
+        stats.push(await calculatePersonalStats(name, currentMonth));
     }
     
     const bestAttendance = [...stats].sort((a,b) => b.presentRate - a.presentRate)[0];
     const worstAbsence = [...stats].sort((a,b) => b.absentRate - a.absentRate)[0];
     const mostLate = [...stats].sort((a,b) => b.lateCount - a.lateCount)[0];
     
-    const adminStatsDiv = document.getElementById('adminStats');
-    if (adminStatsDiv) {
-        adminStatsDiv.innerHTML = `
-            <div style="background:linear-gradient(135deg, #667eea 0%, #764ba2 100%); color:white; padding:20px; border-radius:15px; margin-bottom:20px;">
-                <h3 style="margin:0 0 10px 0;">📊 إحصائيات شهر ${currentMonth + 1}</h3>
-                <div style="display:flex; flex-wrap:wrap; gap:20px; justify-content:space-between;">
-                    <div>🏆 أعلى نسبة حضور: <strong>${bestAttendance?.name || '-'}</strong> (${bestAttendance?.presentRate || 0}%)</div>
-                    <div>⚠️ أعلى غياب بدون عذر: <strong>${worstAbsence?.name || '-'}</strong> (${worstAbsence?.absentRate || 0}%)</div>
-                    <div>⏰ أكثر عضو تأخيراً: <strong>${mostLate?.name || '-'}</strong> (${mostLate?.lateCount || 0} مرة)</div>
-                </div>
+    document.getElementById('adminStats').innerHTML = `
+        <div style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:20px;border-radius:15px;margin-bottom:20px;">
+            <h3>📊 إحصائيات شهر ${currentMonth + 1}</h3>
+            <div style="display:flex;flex-wrap:wrap;gap:20px;justify-content:space-between;">
+                <div>🏆 أعلى حضور: <strong>${bestAttendance?.name || '-'}</strong> (${bestAttendance?.presentRate || 0}%)</div>
+                <div>⚠️ أعلى غياب بدون عذر: <strong>${worstAbsence?.name || '-'}</strong> (${worstAbsence?.absentRate || 0}%)</div>
+                <div>⏰ أكثر عضو تأخيراً: <strong>${mostLate?.name || '-'}</strong> (${mostLate?.lateCount || 0} مرة)</div>
             </div>
-        `;
-    }
+        </div>
+    `;
     
-    let html = `<div style="overflow-x:auto;"><table style="width:100%; border-collapse:collapse;">`;
-    html += `<thead><tr style="background:#667eea; color:white;">
-        <th>الاسم</th><th>حضور</th><th>غياب بعذر</th><th>غياب بدون عذر</th><th>عدد التأخير</th><th>متوسط التأخير</th><th>إجمالي</th>
-    </tr></thead><tbody>`;
+    let html = `<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;">`;
+    html += `<thead><tr style="background:#667eea;color:white;"><th>الاسم</th><th>حضور</th><th>غياب بعذر</th><th>غياب بدون عذر</th><th>عدد التأخير</th><th>متوسط التأخير</th><th>إجمالي</th></tr></thead><tbody>`;
     
-    stats.forEach(s => {
-        html += `<tr>
-            <td>${s.name}</td>
-            <td style="color:#48bb78;">${s.presentRate}%</td>
-            <td style="color:#4299e1;">${s.excusedRate}%</td>
-            <td style="color:#f56565;">${s.absentRate}%</td>
-            <td>${s.lateCount}</td>
-            <td>${s.avgLate}</td>
-            <td>${s.total}</td>
-        </tr>`;
+    allNames.forEach((name, i) => {
+        const s = stats[i];
+        html += `<tr><td>${name}</td><td style="color:#48bb78;">${s.presentRate}%</td><td style="color:#4299e1;">${s.excusedRate}%</td><td style="color:#f56565;">${s.absentRate}%</td><td>${s.lateCount}</td><td>${s.avgLate}</td><td>${s.total}</td></tr>`;
     });
     html += `</tbody></table></div>`;
     
-    const tableDiv = document.getElementById('allMembersTable');
-    if (tableDiv) tableDiv.innerHTML = html;
+    document.getElementById('allMembersTable').innerHTML = html;
 }
 
-function editMemberFromAdmin(memberName) {
-    currentMember = memberName;
-    currentMonth = 0;
-    document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
-    document.getElementById('memberDashboard').classList.remove('hidden');
-    document.getElementById('memberName').textContent = memberName;
-    renderMonthsTabs('memberMonthsTabs', true);
-    document.querySelectorAll('.status-btn').forEach(btn => btn.style.display = 'flex');
-    updateMemberView();
-}
-
+// -------------------- PDF --------------------
 function downloadPDF() {
     const element = document.getElementById('pdf-content');
-    if (!element) {
-        alert('خطأ في إنشاء التقرير');
-        return;
+    if (element) {
+        html2pdf().set({ margin: 10, filename: `شهر_${currentMonth+1}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' } }).from(element).save();
+    } else {
+        alert("خطأ في إنشاء PDF");
     }
-    html2pdf().set({ margin: 10, filename: `تقرير_شهر_${currentMonth+1}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' } }).from(element).save();
 }
 
 // -------------------- دوال التنقل --------------------
