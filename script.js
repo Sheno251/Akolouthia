@@ -3,19 +3,17 @@ const allNames = [
     "مارتيورس جمال", "نرمين فرج الله", "ميرنا فام", "بيشوي صفوت", "شنوده نصحي", "سيلفيا طلعت", "سيمون سمعان", "كرستينا ميلاد", "ماري بشاي", "ابانوب فرج الله", "امال عادل", "باسم جابر",  // 12 عضو
     "هاله عادل", "دميانه سمعان", "فام روماني",",ويصا مرزق","ماري هاني ","مينا فام","فيولا طلعت"  // 3 أدمن
 ];
-
 let admins = [
     { username: "admin1", password: "admin123" },
     { username: "admin2", password: "admin123" },
     { username: "admin3", password: "admin123" }
 ];
 
-// محاولة تحميل كلمات المرور المحفوظة (لـ admin1 فقط)
+// تحميل كلمات المرور المحفوظة (لـ admin1 فقط)
 const savedAdmins = localStorage.getItem('customAdmins');
 if(savedAdmins) {
     const parsed = JSON.parse(savedAdmins);
-    const admin1New = parsed.find(a=>a.username==='admin1');
-    if(admin1New) admins = parsed;
+    if(parsed.find(a=>a.username==='admin1')) admins = parsed;
 }
 
 const MONTHS_COUNT = 12;
@@ -86,6 +84,8 @@ async function recordStatus(status, lateMins=0, actualTime='') {
     ];
     await saveAttendance(record);
     updateMemberView();
+    // لو كان واقف على لوحة الأدمن، نحدثها برضه عشان تظهر البيانات الجديدة
+    if(!document.getElementById('adminDashboard').classList.contains('hidden')) updateAdminView();
 }
 
 async function recordLate() {
@@ -100,7 +100,7 @@ async function recordLate() {
 function showLateDialog() { document.getElementById('lateDialog').classList.remove('hidden'); }
 function closeLateDialog() { document.getElementById('lateDialog').classList.add('hidden'); }
 
-// ---------- واجهة العضو (بدون أزرار للأعضاء العاديين) ----------
+// ---------- واجهة العضو (إخفاء الأزرار للأعضاء العاديين) ----------
 function showMemberList() {
     document.querySelectorAll('.screen').forEach(s=>s.classList.add('hidden'));
     document.getElementById('memberScreen').classList.remove('hidden');
@@ -122,8 +122,9 @@ function openMemberDashboard(name) {
     document.getElementById('memberDashboard').classList.remove('hidden');
     document.getElementById('memberName').innerText = name;
     renderTabs('memberMonthsTabs', true);
-    const btns = document.querySelectorAll('.status-btn');
-    btns.forEach(btn=>btn.style.display = isAdmin ? 'flex' : 'none');
+    // إظهار أو إخفاء أزرار التسجيل
+    const btnsDiv = document.getElementById('attendanceButtons');
+    if(btnsDiv) btnsDiv.style.display = isAdmin ? 'grid' : 'none';
     updateMemberView();
 }
 
@@ -181,6 +182,7 @@ function verifyAdmin() {
 }
 
 function showAdminDashboard(){
+    currentMember = null; // لا يوجد عضو محدد في لوحة الأدمن
     currentMonth=0; currentFilter='monthly';
     document.querySelectorAll('.screen').forEach(s=>s.classList.add('hidden'));
     document.getElementById('adminDashboard').classList.remove('hidden');
@@ -188,6 +190,11 @@ function showAdminDashboard(){
     document.getElementById('filterMonthly').classList.add('active');
     document.getElementById('filterWeekly').classList.remove('active');
     updateAdminView();
+}
+
+// دالة تعديل العضو من لوحة الأدمن
+function editMemberFromAdmin(memberName) {
+    openMemberDashboard(memberName);
 }
 
 async function updateAdminView(){
@@ -210,15 +217,18 @@ async function updateAdminView(){
             </div>
         </div>
     `;
-    let html = `<div style="overflow-x:auto"><table><thead><th>العضو</th><th>حضور</th><th>غياب بعذر</th><th>غياب بدون عذر</th><th>عدد التأخير</th><th>متوسط التأخير</th><th>إجمالي</th></thead><tbody>`;
+    let html = `<div style="overflow-x:auto"><table><thead><th>العضو</th><th>حضور</th><th>غياب بعذر</th><th>غياب بدون عذر</th><th>عدد التأخير</th><th>متوسط التأخير</th><th>إجمالي</th><th>تعديل</th></thead><tbody>`;
     allNames.forEach((name,i)=>{
-        html += `<tr><td style="font-weight:bold">${name}</td>
-        <td style="color:#16a34a">${stats[i].presentRate}%</td>
-        <td style="color:#3b82f6">${stats[i].excusedRate}%</td>
-        <td style="color:#dc2626">${stats[i].absentRate}%</td>
-        <td>${stats[i].lateCount}</td>
-        <td>${stats[i].avgLate}</td>
-        <td>${stats[i].total}</td></tr>`;
+        html += `<tr>
+            <td style="font-weight:bold">${name}</td>
+            <td style="color:#16a34a">${stats[i].presentRate}%</td>
+            <td style="color:#3b82f6">${stats[i].excusedRate}%</td>
+            <td style="color:#dc2626">${stats[i].absentRate}%</td>
+            <td>${stats[i].lateCount}</td>
+            <td>${stats[i].avgLate}</td>
+            <td>${stats[i].total}</td>
+            <td><button class="btn-edit" onclick="editMemberFromAdmin('${name.replace(/'/g, "\\'")}')">✏️ تعديل</button></td>
+        </tr>`;
     });
     html += `</tbody></table></div>`;
     document.getElementById('allMembersTable').innerHTML = html;
@@ -265,7 +275,13 @@ function changeAdminPassword() {
 function downloadPDF() {
     const element = document.getElementById('pdf-content');
     if(element) {
-        html2pdf().set({margin:10, filename:`تقرير_${currentFilter==='monthly'?`شهر${currentMonth+1}`:'اسبوعي'}.pdf`, image:{type:'jpeg',quality:0.98}, html2canvas:{scale:2}, jsPDF:{unit:'mm',format:'a4',orientation:'landscape'}}).from(element).save();
+        html2pdf().set({
+            margin: 10,
+            filename: `تقرير_${currentFilter==='monthly'?`شهر_${currentMonth+1}`:'اسبوعي'}.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2 },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+        }).from(element).save();
     }
 }
 
