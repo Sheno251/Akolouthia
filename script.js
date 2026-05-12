@@ -1,11 +1,10 @@
+
 // الأسماء الكاملة (12 عضو + 3 أدمن)
 const allNames = [
-    "مارتيروس جمال", "نرمين فرج الله", "ميرنا فام", "بيشوي صفوت", "شنوده نصحي", "سيلفيا طلعت", "سيمون سمعان", "كرستينا ميلاد", "ماري بشاي", "ابانوب فرج الله", "امال عادل", "باسم جابر",  // 12 عضو
+    "مارتيورس جمال", "نرمين فرج الله", "ميرنا فام", "بيشوي صفوت", "شنوده نصحي", "سيلفيا طلعت", "سيمون سمعان", "كرستينا ميلاد", "ماري بشاي", "ابانوب فرج الله", "امال عادل", "باسم جابر",  // 12 عضو
     "هاله عادل", "دميانه سمعان", "فام روماني",",ويصا مرزق","ماري هاني ","مينا فام","فيولا طلعت"  // 3 أدمن
 ];
 
-
-// الأدمن
 const admins = [
     { username: "admin1", password: "admin123" },
     { username: "admin2", password: "admin123" },
@@ -15,6 +14,7 @@ const admins = [
 const MONTHS_COUNT = 12;
 let currentMember = null;
 let currentMonth = 0;
+let attendanceData = [];
 
 const statusText = {
     'present': 'حاضر ✅',
@@ -23,131 +23,38 @@ const statusText = {
     'excused': 'غائب بعذر 📝'
 };
 
-// -------------------- تخزين البيانات --------------------
-function loadData() {
-    let data = localStorage.getItem('attendanceData');
-    if (!data) {
-        data = {};
-        allNames.forEach(name => {
-            data[name] = [];
-            for (let i = 0; i < MONTHS_COUNT; i++) {
-                data[name][i] = [];
-            }
+// -------------------- تحميل البيانات من جوجل شيت --------------------
+async function loadData() {
+    try {
+        const response = await fetch(SCRIPT_URL);
+        const data = await response.json();
+        attendanceData = data.attendance || [];
+        return data;
+    } catch (error) {
+        console.error("خطأ في تحميل البيانات:", error);
+        return { members: [], attendance: [] };
+    }
+}
+
+// -------------------- حفظ البيانات في جوجل شيت --------------------
+async function saveToSheet(record) {
+    try {
+        const response = await fetch(SCRIPT_URL, {
+            method: "POST",
+            mode: "no-cors",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(record)
         });
-    } else {
-        data = JSON.parse(data);
-        allNames.forEach(name => {
-            if (!data[name]) data[name] = [];
-            for (let i = 0; i < MONTHS_COUNT; i++) {
-                if (!data[name][i]) data[name][i] = [];
-            }
-        });
+        console.log("تم الحفظ:", record);
+    } catch (error) {
+        console.error("خطأ في الحفظ:", error);
     }
-    return data;
-}
-
-function saveData(data) {
-    localStorage.setItem('attendanceData', JSON.stringify(data));
-}
-
-// -------------------- الموعد الرسمي --------------------
-function getOfficialTime() {
-    let time = localStorage.getItem('officialTime');
-    if (!time) {
-        time = '09:00';
-        localStorage.setItem('officialTime', time);
-    }
-    return time;
-}
-
-function updateOfficialTime() {
-    const newTime = document.getElementById('newOfficialTime').value;
-    if (!newTime) {
-        alert('اختر الوقت أولاً');
-        return;
-    }
-    localStorage.setItem('officialTime', newTime);
-    document.getElementById('currentOfficialTime').textContent = newTime;
-    alert(`تم تغيير الموعد الرسمي إلى ${newTime}`);
-}
-
-function calculateLateMinutes(actualHour, actualMinute) {
-    const officialTime = getOfficialTime();
-    const [officialHour, officialMinute] = officialTime.split(':').map(Number);
-    let lateMinutes = (actualHour - officialHour) * 60 + (actualMinute - officialMinute);
-    return lateMinutes > 0 ? lateMinutes : 0;
-}
-
-// -------------------- نافذة التأخير --------------------
-function showLateDialog() {
-    document.getElementById('lateDialog').classList.remove('hidden');
-    const officialTime = getOfficialTime();
-    document.querySelector('#lateDialog p').innerHTML = `الموعد الرسمي: ${officialTime}`;
-}
-
-function closeLateDialog() {
-    document.getElementById('lateDialog').classList.add('hidden');
-}
-
-function recordLate() {
-    const actualTime = document.getElementById('actualTime').value;
-    if (!actualTime) {
-        alert('يرجى إدخال وقت الحضور');
-        return;
-    }
-    const [hour, minute] = actualTime.split(':').map(Number);
-    const lateMinutes = calculateLateMinutes(hour, minute);
-    
-    const data = loadData();
-    if (!data[currentMember][currentMonth]) data[currentMember][currentMonth] = [];
-    
-    data[currentMember][currentMonth].push({
-        status: 'late',
-        time: new Date().toLocaleTimeString('ar-EG'),
-        date: new Date().toLocaleDateString('ar-EG'),
-        lateMinutes: lateMinutes,
-        actualTime: actualTime
-    });
-    
-    saveData(data);
-    closeLateDialog();
-    updateMemberView();
-}
-
-// -------------------- تسجيل الحالات --------------------
-function recordStatus(status) {
-    if (!currentMember) return;
-    
-    const data = loadData();
-    if (!data[currentMember][currentMonth]) data[currentMember][currentMonth] = [];
-    
-    data[currentMember][currentMonth].push({
-        status: status,
-        time: new Date().toLocaleTimeString('ar-EG'),
-        date: new Date().toLocaleDateString('ar-EG')
-    });
-    
-    saveData(data);
-    updateMemberView();
-}
-
-// -------------------- إعادة تعيين شهر --------------------
-function resetCurrentMonth() {
-    if (!confirm(`هل أنت متأكد من حذف جميع بيانات شهر ${currentMonth + 1}؟ لا يمكن التراجع.`)) return;
-    
-    const data = loadData();
-    allNames.forEach(name => {
-        data[name][currentMonth] = [];
-    });
-    saveData(data);
-    alert(`تم حذف بيانات شهر ${currentMonth + 1} بنجاح`);
-    updateAdminView();
 }
 
 // -------------------- حساب النسب --------------------
-function calculatePersonalStats(name, month) {
-    const data = loadData();
-    const records = data[name][month] || [];
+async function calculatePersonalStats(name, month) {
+    await loadData();
+    const records = attendanceData.filter(r => r[0] === name && r[1] == month + 1);
     const total = records.length;
     
     let present = 0, excused = 0, absent = 0;
@@ -155,15 +62,16 @@ function calculatePersonalStats(name, month) {
     let lateCount = 0;
     
     records.forEach(r => {
-        if (r.status === 'present' || r.status === 'late') {
+        const status = r[3];
+        if (status === 'present' || status === 'late') {
             present++;
-            if (r.status === 'late') {
+            if (status === 'late') {
                 lateCount++;
-                totalLateMinutes += r.lateMinutes || 0;
+                totalLateMinutes += parseInt(r[5]) || 0;
             }
         }
-        else if (r.status === 'excused') excused++;
-        else if (r.status === 'absent') absent++;
+        else if (status === 'excused') excused++;
+        else if (status === 'absent') absent++;
     });
     
     return {
@@ -171,10 +79,49 @@ function calculatePersonalStats(name, month) {
         excusedRate: total ? Math.round((excused / total) * 100) : 0,
         absentRate: total ? Math.round((absent / total) * 100) : 0,
         total: total,
-        totalLateMinutes: totalLateMinutes,
         lateCount: lateCount,
         avgLate: lateCount ? Math.round(totalLateMinutes / lateCount) : 0
     };
+}
+
+// -------------------- تسجيل الحالة --------------------
+async function recordStatus(status, lateMinutes = 0, actualTime = "") {
+    if (!currentMember) return;
+    
+    const record = [
+        currentMember,
+        currentMonth + 1,
+        new Date().toISOString().split('T')[0],
+        status,
+        actualTime || new Date().toLocaleTimeString('ar-EG'),
+        lateMinutes,
+        ""
+    ];
+    
+    await saveToSheet(record);
+    await updateMemberView();
+}
+
+// -------------------- نافذة التأخير --------------------
+function showLateDialog() {
+    document.getElementById('lateDialog').classList.remove('hidden');
+}
+
+function closeLateDialog() {
+    document.getElementById('lateDialog').classList.add('hidden');
+}
+
+async function recordLate() {
+    const actualTime = document.getElementById('actualTime').value;
+    if (!actualTime) {
+        alert('يرجى إدخال وقت الحضور');
+        return;
+    }
+    const [hour, minute] = actualTime.split(':').map(Number);
+    const lateMinutes = Math.max(0, (hour - 9) * 60 + (minute - 0));
+    
+    await recordStatus('late', lateMinutes, actualTime);
+    closeLateDialog();
 }
 
 // -------------------- عرض الأعضاء --------------------
@@ -185,7 +132,6 @@ function showMemberList() {
     const memberList = document.getElementById('memberList');
     memberList.innerHTML = '';
     
-    // عرض الأعضاء العاديين فقط (أول 19 اسم)
     const normalMembers = allNames.slice(0, 19);
     normalMembers.forEach(name => {
         const card = document.createElement('div');
@@ -197,9 +143,7 @@ function showMemberList() {
 }
 
 function openMemberDashboard(name) {
-    // التحقق إذا كان الشخص أدمن
     const isAdminPerson = name.includes("أدمن");
-    
     currentMember = name;
     currentMonth = 0;
     document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
@@ -207,42 +151,18 @@ function openMemberDashboard(name) {
     document.getElementById('memberName').textContent = name;
     renderMonthsTabs('memberMonthsTabs', true);
     
+    const btns = document.querySelectorAll('.status-btn');
     if (isAdminPerson) {
-        // أدمن: يقدر يغير
-        document.querySelectorAll('.status-btn').forEach(btn => {
-            btn.style.display = 'flex';
-        });
+        btns.forEach(btn => btn.style.display = 'flex');
     } else {
-        // عضو عادي: يشوف بس ميقدرش يغير
-        document.querySelectorAll('.status-btn').forEach(btn => {
-            btn.style.display = 'none';
-        });
+        btns.forEach(btn => btn.style.display = 'none');
     }
     
     updateMemberView();
 }
 
-function updateMemberView() {
-    const data = loadData();
-    const records = data[currentMember][currentMonth] || [];
-    const lastRecord = records[records.length - 1];
-    
-    const currentStatusDiv = document.getElementById('currentStatus');
-    if (lastRecord) {
-        let lateInfo = '';
-        if (lastRecord.status === 'late') {
-            lateInfo = `<br><small>⏱️ تأخر ${lastRecord.lateMinutes} دقيقة - حضر الساعة ${lastRecord.actualTime}</small>`;
-        }
-        currentStatusDiv.innerHTML = `
-            <strong>آخر تسجيل:</strong><br>
-            ${statusText[lastRecord.status]}${lateInfo}<br>
-            <small>${lastRecord.date} - ${lastRecord.time}</small>
-        `;
-    } else {
-        currentStatusDiv.innerHTML = 'لا توجد تسجيلات لهذا الشهر';
-    }
-    
-    const stats = calculatePersonalStats(currentMember, currentMonth);
+async function updateMemberView() {
+    const stats = await calculatePersonalStats(currentMember, currentMonth);
     document.getElementById('personalStats').innerHTML = `
         <p>✅ الحضور (حاضر + متأخر): ${stats.presentRate}%</p>
         <p>📝 الغياب بعذر: ${stats.excusedRate}%</p>
@@ -295,74 +215,17 @@ function showAdminDashboard() {
     document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
     document.getElementById('adminDashboard').classList.remove('hidden');
     renderMonthsTabs('adminMonthsTabs', false);
-    const officialTimeElement = document.getElementById('currentOfficialTime');
-    if (officialTimeElement) officialTimeElement.textContent = getOfficialTime();
     updateAdminView();
 }
 
-function editMemberFromAdmin(memberName) {
-    currentMember = memberName;
-    currentMonth = 0;
-    document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
-    document.getElementById('memberDashboard').classList.remove('hidden');
-    document.getElementById('memberName').textContent = memberName;
-    renderMonthsTabs('memberMonthsTabs', true);
-    
-    // إظهار أزرار التسجيل للأدمن
-    document.querySelectorAll('.status-btn').forEach(btn => {
-        btn.style.display = 'flex';
-    });
-    
-    updateMemberView();
-}
-
-function downloadPDF() {
-    const element = document.getElementById('pdf-content');
-    if (!element) {
-        alert('خطأ في إنشاء التقرير');
-        return;
-    }
-    
-    const monthName = `شهر ${currentMonth + 1}`;
-    const date = new Date().toLocaleDateString('ar-EG');
-    
-    const originalHTML = element.innerHTML;
-    element.innerHTML = `
-        <div style="text-align:center; margin-bottom:20px;">
-            <h1 style="color:#667eea;">تقرير حضور وغياب الكنيسة</h1>
-            <h2>${monthName}</h2>
-            <p>تاريخ التقرير: ${date}</p>
-            <hr>
-        </div>
-        ${originalHTML}
-        <div style="text-align:center; margin-top:30px; font-size:12px; color:#999;">
-            تم إنشاء التقرير بواسطة نظام الحضور والغياب
-        </div>
-    `;
-    
-    const options = {
-        margin: [10, 10, 10, 10],
-        filename: `تقرير_${monthName}_${date}.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
-    };
-    
-    html2pdf().set(options).from(element).save().then(() => {
-        element.innerHTML = originalHTML;
-    }).catch(() => {
-        element.innerHTML = originalHTML;
-        alert('حدث خطأ في تحميل PDF');
-    });
-}
-
-function updateAdminView() {
+async function updateAdminView() {
+    await loadData();
     const stats = [];
     
-    allNames.forEach(name => {
-        const personalStats = calculatePersonalStats(name, currentMonth);
+    for (const name of allNames) {
+        const personalStats = await calculatePersonalStats(name, currentMonth);
         stats.push({ name, ...personalStats });
-    });
+    }
     
     const bestAttendance = [...stats].sort((a,b) => b.presentRate - a.presentRate)[0];
     const worstAbsence = [...stats].sort((a,b) => b.absentRate - a.absentRate)[0];
@@ -376,47 +239,52 @@ function updateAdminView() {
                 <div style="display:flex; flex-wrap:wrap; gap:20px; justify-content:space-between;">
                     <div>🏆 أعلى نسبة حضور: <strong>${bestAttendance?.name || '-'}</strong> (${bestAttendance?.presentRate || 0}%)</div>
                     <div>⚠️ أعلى غياب بدون عذر: <strong>${worstAbsence?.name || '-'}</strong> (${worstAbsence?.absentRate || 0}%)</div>
-                    <div>⏰ أكثر عضو تأخيراً: <strong>${mostLate?.name || '-'}</strong> (${mostLate?.lateCount || 0} مرة - متوسط ${mostLate?.avgLate || 0} دقيقة)</div>
+                    <div>⏰ أكثر عضو تأخيراً: <strong>${mostLate?.name || '-'}</strong> (${mostLate?.lateCount || 0} مرة)</div>
                 </div>
             </div>
         `;
     }
     
-    let html = `<div style="overflow-x:auto; border-radius:15px; box-shadow:0 5px 15px rgba(0,0,0,0.1);">
-        <table style="width:100%; border-collapse:collapse; background:white;">
-            <thead>
-                <tr style="background:#667eea; color:white;">
-                    <th style="padding:12px; text-align:center;">الاسم</th>
-                    <th style="padding:12px; text-align:center;">حضور + متأخر</th>
-                    <th style="padding:12px; text-align:center;">غياب بعذر</th>
-                    <th style="padding:12px; text-align:center;">غياب بدون عذر</th>
-                    <th style="padding:12px; text-align:center;">عدد مرات التأخير</th>
-                    <th style="padding:12px; text-align:center;">متوسط التأخير(دق)</th>
-                    <th style="padding:12px; text-align:center;">إجمالي</th>
-                    <th style="padding:12px; text-align:center;">تعديل</th>
-                </tr>
-            </thead>
-            <tbody>`;
+    let html = `<div style="overflow-x:auto;"><table style="width:100%; border-collapse:collapse;">`;
+    html += `<thead><tr style="background:#667eea; color:white;">
+        <th>الاسم</th><th>حضور</th><th>غياب بعذر</th><th>غياب بدون عذر</th><th>عدد التأخير</th><th>متوسط التأخير</th><th>إجمالي</th>
+    </tr></thead><tbody>`;
     
-    stats.forEach((s, index) => {
-        const bgColor = index % 2 === 0 ? '#f7fafc' : 'white';
-        html += `<tr style="background:${bgColor}; border-bottom:1px solid #e2e8f0;">
-            <td style="padding:10px; text-align:center; font-weight:bold;">${s.name}</td>
-            <td style="padding:10px; text-align:center; color:#48bb78; font-weight:bold;">${s.presentRate}%</td>
-            <td style="padding:10px; text-align:center; color:#4299e1;">${s.excusedRate}%</td>
-            <td style="padding:10px; text-align:center; color:#f56565;">${s.absentRate}%</td>
-            <td style="padding:10px; text-align:center;">${s.lateCount}</td>
-            <td style="padding:10px; text-align:center;">${s.avgLate}</td>
-            <td style="padding:10px; text-align:center;">${s.total}</td>
-            <td style="padding:10px; text-align:center;"><button onclick="editMemberFromAdmin('${s.name}')" style="background:#667eea;color:white;border:none;padding:5px 10px;border-radius:5px;cursor:pointer;">✏️ تعديل</button></td>
+    stats.forEach(s => {
+        html += `<tr>
+            <td>${s.name}</td>
+            <td style="color:#48bb78;">${s.presentRate}%</td>
+            <td style="color:#4299e1;">${s.excusedRate}%</td>
+            <td style="color:#f56565;">${s.absentRate}%</td>
+            <td>${s.lateCount}</td>
+            <td>${s.avgLate}</td>
+            <td>${s.total}</td>
         </tr>`;
     });
+    html += `</tbody></table></div>`;
     
-    html += `</tbody>
-        </table>
-    </div>`;
     const tableDiv = document.getElementById('allMembersTable');
     if (tableDiv) tableDiv.innerHTML = html;
+}
+
+function editMemberFromAdmin(memberName) {
+    currentMember = memberName;
+    currentMonth = 0;
+    document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+    document.getElementById('memberDashboard').classList.remove('hidden');
+    document.getElementById('memberName').textContent = memberName;
+    renderMonthsTabs('memberMonthsTabs', true);
+    document.querySelectorAll('.status-btn').forEach(btn => btn.style.display = 'flex');
+    updateMemberView();
+}
+
+function downloadPDF() {
+    const element = document.getElementById('pdf-content');
+    if (!element) {
+        alert('خطأ في إنشاء التقرير');
+        return;
+    }
+    html2pdf().set({ margin: 10, filename: `تقرير_شهر_${currentMonth+1}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' } }).from(element).save();
 }
 
 // -------------------- دوال التنقل --------------------
