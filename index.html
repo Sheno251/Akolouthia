@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>حضور وغياب الكنيسة</title>
-    <link rel="stylesheet" href="style.css">
     <style>
         *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',system-ui}
         body{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);min-height:100vh;padding:20px}
@@ -42,7 +41,6 @@
         .dialog.hidden{display:none}
         .dialog-content{background:white;padding:24px;border-radius:24px;text-align:center;width:90%;max-width:350px}
         input,select{width:100%;padding:12px;margin:10px 0;border:1px solid #cbd5e1;border-radius:12px}
-        .btn-small{background:#3b82f6;color:white;border:none;padding:6px 12px;border-radius:20px;cursor:pointer}
         @media(max-width:640px){th,td{font-size:12px;padding:8px}}
     </style>
 </head>
@@ -58,7 +56,7 @@
         </div>
     </div>
 
-    <!-- شاشة اختيار العضو -->
+    <!-- شاشة الأعضاء -->
     <div id="memberScreen" class="screen hidden">
         <button onclick="backToLogin()" class="btn-back">← رجوع</button>
         <h2 style="margin-top:12px">اختر اسمك</h2>
@@ -93,12 +91,12 @@
 
     <!-- لوحة الأدمن -->
     <div id="adminDashboard" class="screen hidden">
-        <button onclick="adminFullLogout()" class="btn-back">← خروج</button>
+        <button onclick="backToLogin()" class="btn-back">← خروج</button>
         <h2 style="margin-top:12px">لوحة تحكم الأدمن</h2>
         <div class="months-tabs" id="adminMonthsTabs"></div>
         <div class="week-filter">
-            <button id="filterMonthly" class="active">📆 تقرير شهري</button>
-            <button id="filterWeekly">📅 تقرير أسبوعي (السبت)</button>
+            <button id="filterMonthly" class="active">📆 شهري</button>
+            <button id="filterWeekly">📅 أسبوعي (آخر سبت)</button>
         </div>
         <div style="display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin:12px 0">
             <button onclick="downloadPDF()" style="background:#e53e3e;color:white;padding:8px 16px;border:none;border-radius:40px">📄 PDF</button>
@@ -137,8 +135,8 @@
 </div>
 
 <script>
-    // رابط Google Sheet API (تم إنشاؤه من Apps Script)
-    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx291CYDyvwvMUdZ9MQPhG8NkZdm_AdaLuBoyqyDCvBTDHRn63Tt7kZ6bTbxOnq0R3jwQ/exec';
+    // رابط Google Sheets API الجديد
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwqBsdfT2WoK7HcKwR8UIIlROzfu4EooTDlLPA4AeoPpZpFsQ5oj57hZrTryf7CjxkQxQ/exec';
     console.log("✅ Google Sheets API ready");
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
