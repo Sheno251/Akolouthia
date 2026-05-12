@@ -5,12 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>حضور وغياب الكنيسة</title>
     <link rel="stylesheet" href="style.css">
+    <style>
+        /* تحسين شكل الجداول في التقرير */
+        .admin-stats, .members-table { margin: 20px 0; }
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        th, td { padding: 12px; text-align: center; border-bottom: 1px solid #eee; }
+        th { background-color: #1e293b; color: white; }
+        tr:hover { background-color: #f8fafc; }
+        .btn-small { background-color: #3b82f6; border: none; color: white; padding: 4px 12px; border-radius: 20px; cursor: pointer; font-size: 0.85rem; }
+        .btn-small:hover { background-color: #2563eb; }
+        .week-filter { margin: 20px 0; display: flex; gap: 8px; align-items: center; justify-content: center; }
+        .week-filter button { background-color: #e2e8f0; border: none; padding: 6px 12px; border-radius: 24px; cursor: pointer; }
+        .week-filter .active { background-color: #2563eb; color: white; }
+    </style>
 </head>
 <body>
     <div class="container">
         <!-- شاشة الدخول -->
         <div id="loginScreen" class="screen">
-            <h1>نظام الحضور والغياب</h1>
+            <h1>نظام حضور وغياب الكنيسة</h1>
             <div class="card">
                 <h2>اختر هويتك</h2>
                 <button onclick="showMemberList()" class="btn-primary">عضو</button>
@@ -20,19 +33,15 @@
 
         <!-- شاشة الأعضاء -->
         <div id="memberScreen" class="screen hidden">
-            <div class="header">
-                <button onclick="backToLogin()" class="btn-back">↩ رجوع</button>
-                <h2>اختر اسمك</h2>
-            </div>
+            <button onclick="backToLogin()" class="btn-back">↩ رجوع</button>
+            <h2>اختر اسمك</h2>
             <div id="memberList" class="member-grid"></div>
         </div>
 
-        <!-- شاشة العضو الشخصية -->
+        <!-- شاشة العضو -->
         <div id="memberDashboard" class="screen hidden">
-            <div class="header">
-                <button onclick="backToMemberList()" class="btn-back">↩ رجوع</button>
-                <h2 id="memberName"></h2>
-            </div>
+            <button onclick="backToMemberList()" class="btn-back">↩ رجوع</button>
+            <h2 id="memberName"></h2>
             <div class="months-tabs" id="memberMonthsTabs"></div>
             <div class="attendance-buttons">
                 <button onclick="recordStatus('present')" class="status-btn present">✅ حاضر</button>
@@ -41,18 +50,13 @@
                 <button onclick="recordStatus('excused')" class="status-btn excused">📝 غائب بعذر</button>
             </div>
             <div id="currentStatus" class="current-status"></div>
-            <div class="stats">
-                <h3>📊 نسبتك الشخصية</h3>
-                <div id="personalStats"></div>
-            </div>
+            <div class="stats"><h3>📊 نسبتي الشخصية</h3><div id="personalStats"></div></div>
         </div>
 
         <!-- شاشة دخول الأدمن -->
         <div id="adminLoginScreen" class="screen hidden">
-            <div class="header">
-                <button onclick="backToLogin()" class="btn-back">↩ رجوع</button>
-                <h2>دخول الأدمن</h2>
-            </div>
+            <button onclick="backToLogin()" class="btn-back">↩ رجوع</button>
+            <h2>دخول الأدمن</h2>
             <div class="card">
                 <input type="text" id="adminUsername" placeholder="اسم المستخدم">
                 <input type="password" id="adminPassword" placeholder="كلمة السر">
@@ -62,16 +66,20 @@
 
         <!-- لوحة تحكم الأدمن -->
         <div id="adminDashboard" class="screen hidden">
-            <div class="header">
-                <button onclick="backToLogin()" class="btn-back">↩ خروج</button>
-                <h2>لوحة تحكم الأدمن</h2>
-            </div>
+            <button onclick="backToLogin()" class="btn-back">↩ خروج</button>
+            <h2>لوحة تحكم الأدمن</h2>
             <div class="months-tabs" id="adminMonthsTabs"></div>
             
-            <div style="display:flex; gap:10px; margin:15px 0; flex-wrap:wrap;">
-                <button onclick="resetCurrentMonth()" style="background:#ed8936;color:white;padding:10px 20px;border:none;border-radius:10px;cursor:pointer;">🗑️ حذف الشهر الحالي</button>
-                <button onclick="downloadPDF()" style="background:#e53e3e;color:white;padding:10px 20px;border:none;border-radius:10px;cursor:pointer;">📄 تحميل PDF</button>
-                <button onclick="window.print()" style="background:#48bb78;color:white;padding:10px 20px;border:none;border-radius:10px;cursor:pointer;">🖨️ طباعة</button>
+            <!-- فلتر الأسبوعي / الشهري -->
+            <div class="week-filter">
+                <button id="filterMonthly" class="active">تقرير شهري</button>
+                <button id="filterWeekly">تقرير أسبوعي (السبت)</button>
+            </div>
+
+            <div style="display:flex; gap:10px; margin:15px 0; flex-wrap:wrap; justify-content:center;">
+                <button onclick="downloadPDF()" style="background:#e53e3e;color:white;padding:8px 16px;border:none;border-radius:8px;cursor:pointer;">📄 تحميل PDF</button>
+                <button onclick="window.print()" style="background:#48bb78;color:white;padding:8px 16px;border:none;border-radius:8px;cursor:pointer;">🖨️ طباعة</button>
+                <button id="changePasswordBtn" style="background:#f59e0b;color:white;padding:8px 16px;border:none;border-radius:8px;cursor:pointer;">🔑 تغيير كلمة المرور</button>
             </div>
 
             <div id="pdf-content">
@@ -93,8 +101,24 @@
         </div>
     </div>
 
-    <!-- ربط جوجل شيت -->
+    <!-- نافذة تغيير كلمة المرور (لأدمن1 فقط) -->
+    <div id="changePasswordDialog" class="dialog hidden">
+        <div class="dialog-content">
+            <h3>تغيير كلمة المرور</h3>
+            <p>هذه الخاصية متاحة لـ admin1 فقط</p>
+            <label>كلمة المرور الحالية:</label>
+            <input type="password" id="currentPass" placeholder="كلمة المرور الحالية">
+            <label>كلمة المرور الجديدة:</label>
+            <input type="password" id="newPass" placeholder="كلمة المرور الجديدة">
+            <label>تأكيد كلمة المرور الجديدة:</label>
+            <input type="password" id="confirmNewPass" placeholder="تأكيد كلمة المرور">
+            <button onclick="changeAdminPassword()" class="btn-primary">تغيير</button>
+            <button onclick="closeChangePasswordDialog()" class="btn-secondary">إلغاء</button>
+        </div>
+    </div>
+
     <script>
+        // ================== رابط Google Sheets API ==================
         const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx291CYDyvwvMUdZ9MQPhG8NkZdm_AdaLuBoyqyDCvBTDHRn63Tt7kZ6bTbxOnq0R3jwQ/exec';
         console.log("✅ جوجل شيت متصل");
     </script>
